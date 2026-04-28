@@ -1,0 +1,44 @@
+# Authentication messages
+auth:
+  email_already_registered: "Email уже зарегистрирован"
+  username_already_registered: "Имя пользователя уже занято"
+  invalid_credentials: "Неверное имя пользователя или пароль"
+  inactive_user: "Пользователь неактивен"
+  not_authenticated: "Не авторизован"
+  not_enough_permissions: "Недостаточно прав"
+
+# User messages
+user:
+  not_found: "Пользователь не найден"
+  created: "Пользователь успешно создан"
+  updated: "Пользователь обновлён"
+  deleted: "Пользователь удалён"
+
+# Barber messages
+barber:
+  not_found: "Барбер не найден"
+  created: "Барбер успешно добавлен"
+  updated: "Барбер обновлён"
+  deleted: "Барбер удалён"
+
+# Service messages
+service:
+  not_found: "Услуга не найдена"
+  created: "Услуга успешно добавлена"
+  updated: "Услуга обновлена"
+  deleted: "Услуга удалена"
+
+# Booking messages
+booking:
+  not_found: "Бронирование не найдено"
+  created: "Бронирование успешно создано"
+  updated: "Бронирование обновлено"
+  deleted: "Бронирование отменено"
+  time_slot_unavailable: "Это время уже занято"
+  past_date: "Невозможно забронировать на прошедшую дату"
+
+# General messages
+general:
+  success: "Успешно"
+  error: "Ошибка"
+  not_found: "Не найдено"

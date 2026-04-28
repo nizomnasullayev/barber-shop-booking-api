@@ -1,0 +1,44 @@
+# Authentication messages
+auth:
+  email_already_registered: "Email allaqachon ro'yxatdan o'tgan"
+  username_already_registered: "Foydalanuvchi nomi band"
+  invalid_credentials: "Noto'g'ri foydalanuvchi nomi yoki parol"
+  inactive_user: "Foydalanuvchi faol emas"
+  not_authenticated: "Autentifikatsiya qilinmagan"
+  not_enough_permissions: "Ruxsat etilmagan"
+
+# User messages
+user:
+  not_found: "Foydalanuvchi topilmadi"
+  created: "Foydalanuvchi muvaffaqiyatli yaratildi"
+  updated: "Foydalanuvchi yangilandi"
+  deleted: "Foydalanuvchi o'chirildi"
+
+# Barber messages
+barber:
+  not_found: "Sartarosh topilmadi"
+  created: "Sartarosh muvaffaqiyatli qo'shildi"
+  updated: "Sartarosh yangilandi"
+  deleted: "Sartarosh o'chirildi"
+
+# Service messages
+service:
+  not_found: "Xizmat topilmadi"
+  created: "Xizmat muvaffaqiyatli qo'shildi"
+  updated: "Xizmat yangilandi"
+  deleted: "Xizmat o'chirildi"
+
+# Booking messages
+booking:
+  not_found: "Bron topilmadi"
+  created: "Bron muvaffaqiyatli yaratildi"
+  updated: "Bron yangilandi"
+  deleted: "Bron bekor qilindi"
+  time_slot_unavailable: "Bu vaqt band"
+  past_date: "O'tgan sanaga bron qilib bo'lmaydi"
+
+# General messages
+general:
+  success: "Muvaffaqiyatli"
+  error: "Xatolik"
+  not_found: "Topilmadi"
