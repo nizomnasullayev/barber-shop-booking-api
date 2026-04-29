@@ -1,15 +1,14 @@
 from datetime import timedelta
 from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from app.database import get_db
-from app.dependencies.auth import get_current_active_user
 from app.models.user import User
 from app.schemas.user import UserCreate, User as UserSchema
-from app.schemas.token import Token
+from app.schemas.token import Token, LoginRequest
 from app.utils.security import verify_password, get_password_hash, create_access_token
 from app.utils.i18n import translate
 from app.dependencies.locale import get_locale
+from app.dependencies.auth import get_current_active_user
 from app.config import get_settings
 
 settings = get_settings()
@@ -51,19 +50,19 @@ def register(
 
 @router.post("/login", response_model=Token)
 def login(
-    form_data: OAuth2PasswordRequestForm = Depends(),
+    login_data: LoginRequest,
     db: Session = Depends(get_db),
     locale: str = Depends(get_locale)
 ):
-    """Login and get access token"""
-    user = db.query(User).filter(User.username == form_data.username).first()
+    """Login with email and password to get access token"""
+    # Find user by email
+    user = db.query(User).filter(User.email == login_data.email).first()
     
-    if not user or not verify_password(form_data.password, user.hashed_password):
+    if not user or not verify_password(login_data.password, user.hashed_password):
         detail = translate('auth.invalid_credentials', locale=locale)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail=detail,
-            headers={"WWW-Authenticate": "Bearer"},
         )
     
     if not user.is_active:
@@ -73,10 +72,10 @@ def login(
             detail=detail
         )
     
-    # Create access token
+    # Create access token with email as subject
     access_token_expires = timedelta(minutes=settings.access_token_expire_minutes)
     access_token = create_access_token(
-        data={"sub": user.username},
+        data={"sub": user.email},
         expires_delta=access_token_expires
     )
     

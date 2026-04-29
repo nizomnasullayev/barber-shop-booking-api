@@ -261,10 +261,10 @@ def seed_database():
         
         print("\n✅ Database seeding completed successfully!\n")
         print("📝 Sample credentials:")
-        print("   Admin: admin / admin123")
-        print("   User:  john_doe / password123")
-        print("   User:  aziz_uz / password123")
-        print("   User:  maria_k / password123\n")
+        print("   Admin: admin@barbershop.uz / admin123")
+        print("   User:  john@example.com / password123")
+        print("   User:  aziz@example.com / password123")
+        print("   User:  maria@example.com / password123\n")
         
     except Exception as e:
         print(f"\n❌ Error seeding database: {e}")
