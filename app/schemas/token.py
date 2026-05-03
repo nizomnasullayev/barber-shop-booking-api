@@ -6,9 +6,13 @@ class Token(BaseModel):
     token_type: str
 
 class TokenData(BaseModel):
-    email: Optional[str] = None
+    identifier: Optional[str] = None  # Can be phone or email
 
-class LoginRequest(BaseModel):
-    """Login request schema"""
+# Customer login (phone only)
+class LoginCustomer(BaseModel):
+    phone: str
+
+# Staff login (email + password)
+class LoginStaff(BaseModel):
     email: EmailStr
     password: str

@@ -6,8 +6,8 @@ from app.models.booking import BookingStatus
 
 class BookingBase(BaseModel):
     barber_id: uuid.UUID
-    service_id: uuid.UUID
     booking_date: datetime
+    service_description: Optional[str] = None
     notes: Optional[str] = None
 
 class BookingCreate(BookingBase):
@@ -15,9 +15,9 @@ class BookingCreate(BookingBase):
 
 class BookingUpdate(BaseModel):
     barber_id: Optional[uuid.UUID] = None
-    service_id: Optional[uuid.UUID] = None
     booking_date: Optional[datetime] = None
     status: Optional[BookingStatus] = None
+    service_description: Optional[str] = None
     notes: Optional[str] = None
 
 class Booking(BookingBase):

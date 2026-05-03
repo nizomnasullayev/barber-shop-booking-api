@@ -4,7 +4,6 @@ from typing import Optional
 import uuid
 
 class WorkingHoursBase(BaseModel):
-    barber_id: uuid.UUID
     day_of_week: int  # 0=Monday, 6=Sunday
     start_time: time
     end_time: time
@@ -21,6 +20,7 @@ class WorkingHoursUpdate(BaseModel):
 
 class WorkingHours(WorkingHoursBase):
     id: uuid.UUID
+    barber_id: uuid.UUID
 
     class Config:
         from_attributes = True

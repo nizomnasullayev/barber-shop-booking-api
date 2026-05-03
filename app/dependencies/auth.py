@@ -5,7 +5,6 @@ from app.database import get_db
 from app.models.user import User
 from app.utils.security import verify_token
 
-# Use HTTPBearer instead of OAuth2PasswordBearer for cleaner Swagger UI
 security = HTTPBearer()
 
 async def get_current_user(
@@ -20,11 +19,15 @@ async def get_current_user(
     )
     
     token = credentials.credentials
-    email = verify_token(token)
-    if email is None:
+    identifier = verify_token(token)  # Returns phone or email
+    if identifier is None:
         raise credentials_exception
     
-    user = db.query(User).filter(User.email == email).first()
+    # Try to find user by phone first (customer), then by email (staff)
+    user = db.query(User).filter(
+        (User.phone == identifier) | (User.email == identifier)
+    ).first()
+    
     if user is None:
         raise credentials_exception
     

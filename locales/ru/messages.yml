@@ -1,8 +1,10 @@
 # Authentication messages
 auth:
+  phone_already_registered: "Телефон уже зарегистрирован"
+  phone_not_found: "Телефон не найден"
   email_already_registered: "Email уже зарегистрирован"
   username_already_registered: "Имя пользователя уже занято"
-  invalid_credentials: "Неверное имя пользователя или пароль"
+  invalid_credentials: "Неверный email или пароль"
   inactive_user: "Пользователь неактивен"
   not_authenticated: "Не авторизован"
   not_enough_permissions: "Недостаточно прав"

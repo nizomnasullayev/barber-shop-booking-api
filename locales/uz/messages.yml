@@ -1,8 +1,10 @@
 # Authentication messages
 auth:
+  phone_already_registered: "Telefon allaqachon ro'yxatdan o'tgan"
+  phone_not_found: "Telefon topilmadi"
   email_already_registered: "Email allaqachon ro'yxatdan o'tgan"
   username_already_registered: "Foydalanuvchi nomi band"
-  invalid_credentials: "Noto'g'ri foydalanuvchi nomi yoki parol"
+  invalid_credentials: "Noto'g'ri email yoki parol"
   inactive_user: "Foydalanuvchi faol emas"
   not_authenticated: "Autentifikatsiya qilinmagan"
   not_enough_permissions: "Ruxsat etilmagan"

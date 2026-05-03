@@ -5,19 +5,30 @@ from app.database import Base
 import uuid
 from sqlalchemy.dialects.postgresql import UUID
 
+
 class User(Base):
     __tablename__ = "users"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    email = Column(String, unique=True, index=True, nullable=False)
-    username = Column(String, unique=True, index=True, nullable=False)
-    hashed_password = Column(String, nullable=False)
-    full_name = Column(String)
-    phone = Column(String)
+    phone = Column(String, unique=True, index=True,
+                   nullable=False)  # Primary identifier
+    full_name = Column(String, nullable=False)
+
+    # Optional fields (only for barbers/admin)
+    email = Column(String, unique=True, index=True, nullable=True)
+    username = Column(String, unique=True, index=True, nullable=True)
+    hashed_password = Column(String, nullable=True)
+
     is_active = Column(Boolean, default=True)
     is_admin = Column(Boolean, default=False)
+    is_barber = Column(Boolean, default=False)  # New field
     created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow,
+                        onupdate=datetime.utcnow)
 
     # Relationships
-    bookings = relationship("Booking", back_populates="customer")
+    bookings = relationship(
+        "Booking",
+        back_populates="customer",
+        foreign_keys="Booking.customer_id"   # 👈 ADD THIS
+    )

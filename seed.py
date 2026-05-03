@@ -2,7 +2,6 @@ from sqlalchemy.orm import Session
 from app.database import SessionLocal, engine, Base
 from app.models.user import User
 from app.models.barber import Barber
-from app.models.service import Service
 from app.models.booking import Booking, BookingStatus
 from app.models.working_hours import WorkingHours
 from app.utils.security import get_password_hash
@@ -14,6 +13,7 @@ def create_users(db: Session):
     print("Creating users...")
     
     users = [
+        # Admin
         {
             "email": "admin@barbershop.uz",
             "username": "admin",
@@ -21,34 +21,30 @@ def create_users(db: Session):
             "full_name": "Admin User",
             "phone": "+998901234567",
             "is_active": True,
-            "is_admin": True
+            "is_admin": True,
+            "is_barber": False
         },
+        # Regular customers (phone + name only)
         {
-            "email": "john@example.com",
-            "username": "john_doe",
-            "hashed_password": get_password_hash("password123"),
-            "full_name": "John Doe",
             "phone": "+998901111111",
+            "full_name": "John Doe",
             "is_active": True,
-            "is_admin": False
+            "is_admin": False,
+            "is_barber": False
         },
         {
-            "email": "aziz@example.com",
-            "username": "aziz_uz",
-            "hashed_password": get_password_hash("password123"),
-            "full_name": "Aziz Karimov",
             "phone": "+998902222222",
+            "full_name": "Aziz Karimov",
             "is_active": True,
-            "is_admin": False
+            "is_admin": False,
+            "is_barber": False
         },
         {
-            "email": "maria@example.com",
-            "username": "maria_k",
-            "hashed_password": get_password_hash("password123"),
-            "full_name": "Maria Koroleva",
             "phone": "+998903333333",
+            "full_name": "Maria Koroleva",
             "is_active": True,
-            "is_admin": False
+            "is_admin": False,
+            "is_barber": False
         }
     ]
     
@@ -106,51 +102,6 @@ def create_barbers(db: Session):
     print(f"✓ Created {len(db_barbers)} barbers")
     return db_barbers
 
-def create_services(db: Session):
-    """Create sample services"""
-    print("Creating services...")
-    
-    services = [
-        {
-            "name": "Классическая стрижка",
-            "description": "Традиционная мужская стрижка с укладкой",
-            "price": 80000,  # 80,000 UZS
-            "duration_minutes": 45,
-            "is_active": True
-        },
-        {
-            "name": "Стрижка + Борода",
-            "description": "Комплекс: стрижка волос и оформление бороды",
-            "price": 120000,  # 120,000 UZS
-            "duration_minutes": 60,
-            "is_active": True
-        },
-        {
-            "name": "Бритье опасной бритвой",
-            "description": "Традиционное бритье с горячим полотенцем",
-            "price": 60000,  # 60,000 UZS
-            "duration_minutes": 30,
-            "is_active": True
-        },
-        {
-            "name": "Детская стрижка",
-            "description": "Стрижка для детей до 12 лет",
-            "price": 50000,  # 50,000 UZS
-            "duration_minutes": 30,
-            "is_active": True
-        }
-    ]
-    
-    db_services = []
-    for service_data in services:
-        service = Service(**service_data)
-        db.add(service)
-        db_services.append(service)
-    
-    db.commit()
-    print(f"✓ Created {len(db_services)} services")
-    return db_services
-
 def create_working_hours(db: Session, barbers):
     """Create working hours for barbers"""
     print("Creating working hours...")
@@ -158,7 +109,7 @@ def create_working_hours(db: Session, barbers):
     working_hours_count = 0
     for barber in barbers:
         # Monday to Friday: 9:00 - 18:00
-        for day in range(5):  # 0-4 (Mon-Fri)
+        for day in range(5):
             wh = WorkingHours(
                 barber_id=barber.id,
                 day_of_week=day,
@@ -183,7 +134,7 @@ def create_working_hours(db: Session, barbers):
     db.commit()
     print(f"✓ Created {working_hours_count} working hour slots")
 
-def create_bookings(db: Session, users, barbers, services):
+def create_bookings(db: Session, users, barbers):
     """Create sample bookings"""
     print("Creating bookings...")
     
@@ -194,32 +145,32 @@ def create_bookings(db: Session, users, barbers, services):
         {
             "customer_id": customers[0].id,
             "barber_id": barbers[0].id,
-            "service_id": services[0].id,
             "booking_date": datetime.now() + timedelta(days=1, hours=10),
+            "service_description": "Классическая стрижка",
             "status": BookingStatus.CONFIRMED,
             "notes": "Пожалуйста, покороче по бокам"
         },
         {
             "customer_id": customers[1].id,
             "barber_id": barbers[1].id,
-            "service_id": services[1].id,
             "booking_date": datetime.now() + timedelta(days=2, hours=14),
+            "service_description": "Современная стрижка + борода",
             "status": BookingStatus.PENDING,
             "notes": None
         },
         {
             "customer_id": customers[2].id,
             "barber_id": barbers[2].id,
-            "service_id": services[2].id,
             "booking_date": datetime.now() + timedelta(days=3, hours=11),
+            "service_description": "Fade стрижка",
             "status": BookingStatus.CONFIRMED,
             "notes": "Первый раз у вас"
         },
         {
             "customer_id": customers[0].id,
             "barber_id": barbers[0].id,
-            "service_id": services[3].id,
             "booking_date": datetime.now() - timedelta(days=5),
+            "service_description": "Детская стрижка",
             "status": BookingStatus.COMPLETED,
             "notes": "Для сына"
         }
@@ -242,11 +193,10 @@ def seed_database():
     db = SessionLocal()
     
     try:
-        # Clear existing data (optional - comment out if you want to keep existing data)
+        # Clear existing data
         print("Clearing existing data...")
         db.query(Booking).delete()
         db.query(WorkingHours).delete()
-        db.query(Service).delete()
         db.query(Barber).delete()
         db.query(User).delete()
         db.commit()
@@ -255,16 +205,15 @@ def seed_database():
         # Create data
         users = create_users(db)
         barbers = create_barbers(db)
-        services = create_services(db)
         create_working_hours(db, barbers)
-        create_bookings(db, users, barbers, services)
+        create_bookings(db, users, barbers)
         
         print("\n✅ Database seeding completed successfully!\n")
         print("📝 Sample credentials:")
-        print("   Admin: admin@barbershop.uz / admin123")
-        print("   User:  john@example.com / password123")
-        print("   User:  aziz@example.com / password123")
-        print("   User:  maria@example.com / password123\n")
+        print("   Admin (staff login): admin@barbershop.uz / admin123")
+        print("   Customer (phone login): +998901111111 (John Doe)")
+        print("   Customer (phone login): +998902222222 (Aziz Karimov)")
+        print("   Customer (phone login): +998903333333 (Maria Koroleva)\n")
         
     except Exception as e:
         print(f"\n❌ Error seeding database: {e}")

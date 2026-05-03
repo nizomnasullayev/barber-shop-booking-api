@@ -5,6 +5,7 @@ from app.database import Base
 import uuid
 from sqlalchemy.dialects.postgresql import UUID
 
+
 class Barber(Base):
     __tablename__ = "barbers"
 
@@ -17,8 +18,14 @@ class Barber(Base):
     image_url = Column(String)
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow,
+                        onupdate=datetime.utcnow)
 
     # Relationships
-    bookings = relationship("Booking", back_populates="barber")
-    working_hours = relationship("WorkingHours", back_populates="barber", cascade="all, delete-orphan")
+    bookings = relationship(
+        "Booking",
+        back_populates="barber",
+        foreign_keys="Booking.barber_id"
+    )
+    working_hours = relationship(
+        "WorkingHours", back_populates="barber", cascade="all, delete-orphan")
