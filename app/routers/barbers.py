@@ -7,6 +7,63 @@ from app.models.barber import Barber
 from app.models.user import User
 from app.schemas.barber import Barber as BarberSchema, BarberCreate, BarberUpdate
 from app.dependencies.auth import get_current_admin_user
+from guara import abstract_transaction, application, it
+
+brain = application.Application()
+
+class TransactionExceptions(Exception):
+    pass
+
+# Preconditons
+
+class UserIsAdmin(abstract_transaction.AbstractTransaction):
+    def do(self, user):
+        # Implement the logic here
+        pass
+
+class BarberExists(abstract_transaction.AbstractTransaction):
+    def do(self, db, id):
+        if db.query(Barber).filter(Barber.id == id).first():
+            return
+        raise TransactionExceptions("Barber does not exist")
+
+
+class BarberDoesNotExist(abstract_transaction.AbstractTransaction):
+    def do(self, db, id):
+        try:
+            BarberExists().do(db, id)
+        except TransactionExceptions:
+            pass
+        raise TransactionExceptions("Barber already exists")
+
+
+# Actions
+class AddBarber(abstract_transaction.AbstractTransaction):
+    def do(self, db, barber: Barber):
+        db.add(barber)
+        db.commit()
+        db.refresh(barber)
+        return True
+
+
+class UpdateBarber(abstract_transaction.AbstractTransaction):
+    def do(self, db, barber_id, barber_data):
+        barber = db.query(Barber).filter(Barber.id == barber_id).first()   
+        update_data = barber_data.dict(exclude_unset=True)
+        for field, value in update_data.items():
+            setattr(barber, field, value)
+        db.commit()
+        db.refresh(barber)
+        return barber
+
+
+class DeleteBarber(abstract_transaction.AbstractTransaction):
+    def do(self, db, barber_id):
+        barber = db.query(Barber).filter(Barber.id == barber_id).first()   
+        db.delete(barber)
+        db.commit()
+
+
 
 router = APIRouter(prefix="/barbers", tags=["Barbers"])
 
@@ -44,9 +101,12 @@ def create_barber(
 ):
     """Create a new barber (Admin only)"""
     db_barber = Barber(**barber_data.dict())
-    db.add(db_barber)
-    db.commit()
-    db.refresh(db_barber)
+    (
+        brain.given(UserIsAdmin, user=current_user)
+        .and_(BarberDoesNotExist, db=db, id=db_barber.id)
+        .when(AddBarber, db=db, barber=db_barber)
+        .then(it.IsTrue)
+    )
     return db_barber
 
 @router.put("/{barber_id}", response_model=BarberSchema)
@@ -57,20 +117,13 @@ def update_barber(
     current_user: User = Depends(get_current_admin_user)
 ):
     """Update a barber (Admin only)"""
-    barber = db.query(Barber).filter(Barber.id == barber_id).first()
-    if not barber:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Barber not found"
-        )
-    
-    update_data = barber_data.dict(exclude_unset=True)
-    for field, value in update_data.items():
-        setattr(barber, field, value)
-    
-    db.commit()
-    db.refresh(barber)
-    return barber
+    return (
+        brain.given(UserIsAdmin, user=current_user)
+        .and_(BarberExists, db=db, id=barber_id)
+        .when(UpdateBarber, db=db, barber_id=barber_id, barber_data=barber_data)
+        .then(it.IsNotNone)
+        .result
+    )
 
 @router.delete("/{barber_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_barber(
@@ -79,13 +132,9 @@ def delete_barber(
     current_user: User = Depends(get_current_admin_user)
 ):
     """Delete a barber (Admin only)"""
-    barber = db.query(Barber).filter(Barber.id == barber_id).first()
-    if not barber:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Barber not found"
-        )
-    
-    db.delete(barber)
-    db.commit()
-    return None
+    (
+        brain.given(UserIsAdmin, user=current_user)
+        .and_(BarberExists, db=db, id=barber_id)
+        .when(DeleteBarber, db=db, barber_id=barber_id)
+        .then(it.IsNotNone)
+    )
