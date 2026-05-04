@@ -18,7 +18,10 @@ app = FastAPI(
 # CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173","https://barber-shop-booking-app.vercel.app/", "*"],
+    allow_origins=[
+        "http://localhost:5173",
+        "https://barber-shop-booking-app.vercel.app"
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -32,9 +35,11 @@ app.include_router(bookings.router)
 app.include_router(barber_panel.router)
 app.include_router(ws_router.router)
 
+
 @app.get("/")
 async def root():
     return {"message": "Barber Shop Booking API", "status": "running"}
+
 
 @app.get("/health")
 async def health_check():
