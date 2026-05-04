@@ -78,14 +78,16 @@ def delete_barber(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin_user)
 ):
-    """Delete a barber (Admin only)"""
+    """Deactivate a barber (Admin only)"""
     barber = db.query(Barber).filter(Barber.id == barber_id).first()
     if not barber:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Barber not found"
         )
-    
-    db.delete(barber)
+
+    # Keep data integrity: bookings reference barber_id (NOT NULL).
+    # Instead of hard-delete, mark barber as inactive.
+    barber.is_active = False
     db.commit()
     return None

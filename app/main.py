@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.config import get_settings
 from app.database import engine, Base
 from app.routers import auth, users, barbers, bookings, barber_panel
+from app.routers import ws as ws_router
 
 settings = get_settings()
 
@@ -29,6 +30,7 @@ app.include_router(users.router)
 app.include_router(barbers.router)
 app.include_router(bookings.router)
 app.include_router(barber_panel.router)
+app.include_router(ws_router.router)
 
 @app.get("/")
 async def root():

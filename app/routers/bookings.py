@@ -8,6 +8,7 @@ from app.models.booking import Booking, BookingStatus
 from app.models.user import User
 from app.schemas.booking import Booking as BookingSchema, BookingCreate, BookingUpdate
 from app.dependencies.auth import get_current_active_user, get_current_admin_user
+from app.ws_manager import manager
 
 router = APIRouter(prefix="/bookings", tags=["Bookings"])
 
@@ -67,6 +68,14 @@ def create_booking(
     db.add(db_booking)
     db.commit()
     db.refresh(db_booking)
+    
+    # Broadcast the new booking
+    import asyncio
+    asyncio.create_task(manager.broadcast_json({
+        "type": "booking_created",
+        "booking_id": str(db_booking.id)
+    }))
+    
     return db_booking
 
 @router.put("/{booking_id}", response_model=BookingSchema)
@@ -97,6 +106,14 @@ def update_booking(
     
     db.commit()
     db.refresh(booking)
+    
+    # Broadcast the update
+    import asyncio
+    asyncio.create_task(manager.broadcast_json({
+        "type": "booking_updated",
+        "booking_id": str(booking.id)
+    }))
+    
     return booking
 
 @router.delete("/{booking_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -120,6 +137,15 @@ def delete_booking(
             detail="Not enough permissions"
         )
     
+    booking_id_str = str(booking.id)
     db.delete(booking)
     db.commit()
+    
+    # Broadcast the deletion
+    import asyncio
+    asyncio.create_task(manager.broadcast_json({
+        "type": "booking_deleted",
+        "booking_id": booking_id_str
+    }))
+    
     return None

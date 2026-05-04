@@ -14,6 +14,7 @@ from app.schemas.booking import Booking as BookingSchema, BookingUpdate
 from app.schemas.barber import Barber as BarberSchema, BarberUpdate
 from app.schemas.working_hours import WorkingHours as WorkingHoursSchema, WorkingHoursCreate, WorkingHoursUpdate
 from app.dependencies.auth import get_current_active_user
+from app.ws_manager import manager
 
 router = APIRouter(prefix="/barber-panel", tags=["Barber Panel"])
 
@@ -136,6 +137,7 @@ async def update_booking_status(
     
     db.commit()
     db.refresh(booking)
+    await manager.broadcast_json({"type": "booking_updated", "booking_id": str(booking.id)})
     return booking
 
 @router.get("/bookings/{booking_id}/customer")
@@ -457,4 +459,5 @@ async def create_walkin_booking(
     db.add(booking)
     db.commit()
     db.refresh(booking)
+    await manager.broadcast_json({"type": "booking_created", "booking_id": str(booking.id)})
     return booking

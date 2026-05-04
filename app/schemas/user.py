@@ -29,6 +29,19 @@ class UserUpdate(BaseModel):
     email: Optional[EmailStr] = None
     username: Optional[str] = None
     password: Optional[str] = None
+    is_active: Optional[bool] = None
+
+    # Admin-only role updates (router enforces permissions)
+    is_barber: Optional[bool] = None
+    is_admin: Optional[bool] = None
+
+class MakeBarberRequest(BaseModel):
+    """Admin promotes an existing user to barber and sets staff credentials."""
+    email: EmailStr
+    username: str
+    password: str = Field(..., min_length=6)
+    barber_name: Optional[str] = None
+    barber_phone: Optional[str] = None
 
 # Schema for response (what API returns)
 class User(UserBase):
