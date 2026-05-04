@@ -13,7 +13,7 @@ from app.ws_manager import manager
 router = APIRouter(prefix="/bookings", tags=["Bookings"])
 
 @router.get("/", response_model=List[BookingSchema])
-def get_bookings(
+async def get_bookings(
     skip: int = 0,
     limit: int = 100,
     db: Session = Depends(get_db),
@@ -30,7 +30,7 @@ def get_bookings(
     return bookings
 
 @router.get("/{booking_id}", response_model=BookingSchema)
-def get_booking(
+async def get_booking(
     booking_id: uuid.UUID,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
@@ -53,7 +53,7 @@ def get_booking(
     return booking
 
 @router.post("/", response_model=BookingSchema, status_code=status.HTTP_201_CREATED)
-def create_booking(
+async def create_booking(
     booking_data: BookingCreate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
@@ -70,16 +70,15 @@ def create_booking(
     db.refresh(db_booking)
     
     # Broadcast the new booking
-    import asyncio
-    asyncio.create_task(manager.broadcast_json({
+    await manager.broadcast_json({
         "type": "booking_created",
         "booking_id": str(db_booking.id)
-    }))
+    })
     
     return db_booking
 
 @router.put("/{booking_id}", response_model=BookingSchema)
-def update_booking(
+async def update_booking(
     booking_id: uuid.UUID,
     booking_data: BookingUpdate,
     db: Session = Depends(get_db),
@@ -108,16 +107,15 @@ def update_booking(
     db.refresh(booking)
     
     # Broadcast the update
-    import asyncio
-    asyncio.create_task(manager.broadcast_json({
+    await manager.broadcast_json({
         "type": "booking_updated",
         "booking_id": str(booking.id)
-    }))
+    })
     
     return booking
 
 @router.delete("/{booking_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_booking(
+async def delete_booking(
     booking_id: uuid.UUID,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
@@ -142,10 +140,9 @@ def delete_booking(
     db.commit()
     
     # Broadcast the deletion
-    import asyncio
-    asyncio.create_task(manager.broadcast_json({
+    await manager.broadcast_json({
         "type": "booking_deleted",
         "booking_id": booking_id_str
-    }))
+    })
     
     return None
