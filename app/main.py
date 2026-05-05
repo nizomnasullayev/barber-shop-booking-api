@@ -7,9 +7,6 @@ from app.routers import ws as ws_router
 
 settings = get_settings()
 
-# Create database tables
-Base.metadata.create_all(bind=engine)
-
 app = FastAPI(
     title=settings.app_name,
     debug=settings.debug

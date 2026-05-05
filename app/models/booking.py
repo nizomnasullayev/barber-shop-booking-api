@@ -22,7 +22,6 @@ class Booking(Base):
     barber_id = Column(UUID(as_uuid=True), ForeignKey("barbers.id"), nullable=False)
 
     booking_date = Column(DateTime, nullable=False)
-    service_description = Column(Text)  # What service they want (free text)
     status = Column(SQLEnum(BookingStatus), default=BookingStatus.PENDING)
     notes = Column(String)
 

@@ -29,6 +29,33 @@ async def get_bookings(
     
     return bookings
 
+@router.get("/booked-slots")
+async def get_booked_slots(
+    barber_id: uuid.UUID,
+    date: str,
+    db: Session = Depends(get_db)
+):
+    """Get all booked time slots for a specific barber and date"""
+    try:
+        # Parse date string (expecting YYYY-MM-DD)
+        target_date = datetime.strptime(date, '%Y-%m-%d').date()
+        
+        # Query bookings for this barber on this date that are not cancelled
+        bookings = db.query(Booking).filter(
+            Booking.barber_id == barber_id,
+            Booking.status != BookingStatus.CANCELLED
+        ).all()
+        
+        # Filter by date in Python (since booking_date is DateTime)
+        booked_times = []
+        for b in bookings:
+            if b.booking_date.date() == target_date:
+                booked_times.append(b.booking_date.strftime('%H:%M'))
+        
+        return booked_times
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD")
+
 @router.get("/{booking_id}", response_model=BookingSchema)
 async def get_booking(
     booking_id: uuid.UUID,
@@ -59,7 +86,18 @@ async def create_booking(
     current_user: User = Depends(get_current_active_user)
 ):
     """Create a new booking"""
-    # TODO: Add validation to check if time slot is available
+    # Check if slot is already booked
+    existing = db.query(Booking).filter(
+        Booking.barber_id == booking_data.barber_id,
+        Booking.booking_date == booking_data.booking_date,
+        Booking.status != BookingStatus.CANCELLED
+    ).first()
+    
+    if existing:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="This time slot is already booked"
+        )
     
     db_booking = Booking(
         customer_id=current_user.id,

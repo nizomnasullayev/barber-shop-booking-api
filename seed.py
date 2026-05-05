@@ -146,7 +146,6 @@ def create_bookings(db: Session, users, barbers):
             "customer_id": customers[0].id,
             "barber_id": barbers[0].id,
             "booking_date": datetime.now() + timedelta(days=1, hours=10),
-            "service_description": "Классическая стрижка",
             "status": BookingStatus.CONFIRMED,
             "notes": "Пожалуйста, покороче по бокам"
         },
@@ -154,7 +153,6 @@ def create_bookings(db: Session, users, barbers):
             "customer_id": customers[1].id,
             "barber_id": barbers[1].id,
             "booking_date": datetime.now() + timedelta(days=2, hours=14),
-            "service_description": "Современная стрижка + борода",
             "status": BookingStatus.PENDING,
             "notes": None
         },
@@ -162,7 +160,6 @@ def create_bookings(db: Session, users, barbers):
             "customer_id": customers[2].id,
             "barber_id": barbers[2].id,
             "booking_date": datetime.now() + timedelta(days=3, hours=11),
-            "service_description": "Fade стрижка",
             "status": BookingStatus.CONFIRMED,
             "notes": "Первый раз у вас"
         },
@@ -170,7 +167,6 @@ def create_bookings(db: Session, users, barbers):
             "customer_id": customers[0].id,
             "barber_id": barbers[0].id,
             "booking_date": datetime.now() - timedelta(days=5),
-            "service_description": "Детская стрижка",
             "status": BookingStatus.COMPLETED,
             "notes": "Для сына"
         }

@@ -418,13 +418,11 @@ async def delete_working_hours(
     return {"message": "Working hours deleted successfully"}
 
 # ==================== CREATE WALK-IN BOOKING ====================
-
 @router.post("/bookings/walk-in", response_model=BookingSchema)
 async def create_walkin_booking(
     customer_phone: str,
     customer_name: str,
     booking_date: datetime,
-    service_description: str = None,
     notes: str = None,
     barber: Barber = Depends(get_current_barber),
     db: Session = Depends(get_db)
@@ -451,7 +449,6 @@ async def create_walkin_booking(
         customer_id=customer.id,
         barber_id=barber.id,
         booking_date=booking_date,
-        service_description=service_description,
         notes=notes,
         status=BookingStatus.CONFIRMED
     )
