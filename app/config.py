@@ -9,8 +9,17 @@ class Settings(BaseSettings):
     algorithm: str = "HS256"
     access_token_expire_minutes: int = 30
 
+    admin_email: str | None = None
+    admin_password: str | None = None
+
+    # Cloudinary
+    cloudinary_cloud_name: str
+    cloudinary_api_key: str
+    cloudinary_api_secret: str
+
     class Config:
         env_file = ".env"
+        extra = "ignore"
 
 @lru_cache()
 def get_settings():

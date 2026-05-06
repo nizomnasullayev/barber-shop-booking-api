@@ -12,7 +12,7 @@ class BarberBase(BaseModel):
     image_url: Optional[str] = None
 
 class BarberCreate(BarberBase):
-    pass
+    password: Optional[str] = None
 
 class BarberUpdate(BaseModel):
     name: Optional[str] = None

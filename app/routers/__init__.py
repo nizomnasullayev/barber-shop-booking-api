@@ -1,1 +1,1 @@
-from app.routers import auth, users, barbers, services, bookings, barber_panel
+from app.routers import auth, users, barbers, services, bookings, barber_panel, upload

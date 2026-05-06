@@ -7,6 +7,7 @@ from app.models.barber import Barber
 from app.models.user import User
 from app.schemas.barber import Barber as BarberSchema, BarberCreate, BarberUpdate
 from app.dependencies.auth import get_current_admin_user
+from app.utils.security import get_password_hash
 
 router = APIRouter(prefix="/barbers", tags=["Barbers"])
 
@@ -43,8 +44,34 @@ def create_barber(
     current_user: User = Depends(get_current_admin_user)
 ):
     """Create a new barber (Admin only)"""
-    db_barber = Barber(**barber_data.dict())
+    # Create the barber profile
+    barber_dict = barber_data.dict(exclude={"password"})
+    db_barber = Barber(**barber_dict)
     db.add(db_barber)
+    
+    # If password and email/phone are provided, also create a User record for login
+    if barber_data.password and barber_data.email and barber_data.phone:
+        # Check if user already exists
+        existing_user = db.query(User).filter(
+            (User.email == barber_data.email) | (User.phone == barber_data.phone)
+        ).first()
+        
+        if not existing_user:
+            db_user = User(
+                phone=barber_data.phone,
+                email=barber_data.email,
+                full_name=barber_data.name,
+                hashed_password=get_password_hash(barber_data.password),
+                is_barber=True,
+                is_admin=False
+            )
+            db.add(db_user)
+        else:
+            # If user exists but is not a barber, update it
+            existing_user.is_barber = True
+            if barber_data.password:
+                existing_user.hashed_password = get_password_hash(barber_data.password)
+    
     db.commit()
     db.refresh(db_barber)
     return db_barber
@@ -86,8 +113,7 @@ def delete_barber(
             detail="Barber not found"
         )
 
-    # Keep data integrity: bookings reference barber_id (NOT NULL).
-    # Instead of hard-delete, mark barber as inactive.
+    # Mark barber as inactive.
     barber.is_active = False
     db.commit()
     return None
