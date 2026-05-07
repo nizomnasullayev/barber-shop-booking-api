@@ -11,12 +11,20 @@ settings = get_settings()
 bot = Bot(token=settings.telegram_bot_token)
 
 
-async def get_user_locale(chat_id: int) -> str:
-    """Get user's preferred locale from DB"""
+async def get_user_locale(update: Update, context: ContextTypes.DEFAULT_TYPE) -> str:
+    """Get user's preferred locale from context or DB"""
+    if context and 'locale' in context.user_data:
+        return context.user_data['locale']
+    
+    chat_id = update.effective_chat.id
     db = SessionLocal()
     try:
         user = db.query(User).filter(User.telegram_chat_id == str(chat_id)).first()
-        return user.language if user else 'ru'
+        if user and user.language:
+            if context:
+                context.user_data['locale'] = user.language
+            return user.language
+        return 'ru'
     finally:
         db.close()
 
@@ -33,15 +41,14 @@ async def get_main_keyboard(locale: str):
             KeyboardButton(f"🌐 {lang_label}")
         ],
         [
-            KeyboardButton(f"🔗 {link_label}")
+            KeyboardButton(f"🔗 {link_label}", request_contact=True)
         ]
     ]
     return ReplyKeyboardMarkup(buttons, resize_keyboard=True)
 
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handle /start command"""
-    chat_id = update.effective_chat.id
-    locale = await get_user_locale(chat_id)
+    locale = await get_user_locale(update, context)
     
     keyboard = await get_main_keyboard(locale)
     await update.message.reply_text(
@@ -52,8 +59,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handle text messages from buttons"""
     text = update.message.text
-    chat_id = update.effective_chat.id
-    locale = await get_user_locale(chat_id)
+    locale = await get_user_locale(update, context)
 
     # Help Button
     if "Yordam" in text or "Справка" in text or "/help" in text:
@@ -73,8 +79,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def lang_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handle /lang command - show language selection"""
-    chat_id = update.effective_chat.id
-    locale = await get_user_locale(chat_id)
+    locale = await get_user_locale(update, context)
     
     keyboard = [
         [
@@ -97,6 +102,9 @@ async def language_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     new_lang = query.data.split('_')[-1]
     chat_id = update.effective_chat.id
     
+    # Save to session
+    context.user_data['locale'] = new_lang
+    
     db = SessionLocal()
     try:
         user = db.query(User).filter(User.telegram_chat_id == str(chat_id)).first()
@@ -117,8 +125,7 @@ async def language_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def handle_phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handle phone number messages"""
-    chat_id = update.effective_chat.id
-    locale = await get_user_locale(chat_id)
+    locale = await get_user_locale(update, context)
     phone = update.message.text.strip()
 
     if not phone.startswith('+') or len(phone) < 10:
@@ -148,10 +155,41 @@ async def handle_phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
     finally:
         db.close()
 
+async def handle_contact(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handle shared contact (phone number)"""
+    locale = await get_user_locale(update, context)
+    contact = update.message.contact
+    
+    # Ensure the phone number starts with +
+    phone = contact.phone_number
+    if not phone.startswith('+'):
+        phone = f"+{phone}"
+
+    db = SessionLocal()
+    try:
+        user = db.query(User).filter(User.phone == phone).first()
+
+        if not user:
+            await update.message.reply_text(translate('bot.user_not_found', locale=locale))
+            return
+
+        user.telegram_chat_id = str(chat_id)
+        if not user.language:
+            user.language = locale
+        db.commit()
+
+        await update.message.reply_text(
+            translate('bot.link_success', locale=user.language, name=user.full_name, phone=user.phone)
+        )
+    except Exception as e:
+        print(f"Error linking contact: {e}")
+        await update.message.reply_text("❌ Error / Ошибка / Xatolik")
+    finally:
+        db.close()
+
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handle /help command"""
-    chat_id = update.effective_chat.id
-    locale = await get_user_locale(chat_id)
+    locale = await get_user_locale(update, context)
     await update.message.reply_text(translate('bot.help', locale=locale))
 
 
@@ -181,6 +219,7 @@ def run_bot():
     application.add_handler(CommandHandler("lang", lang_command))
     application.add_handler(CommandHandler("link", link_command))
     application.add_handler(CallbackQueryHandler(language_callback, pattern='^set_lang_'))
+    application.add_handler(MessageHandler(filters.CONTACT, handle_contact))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
     # Add error handler
