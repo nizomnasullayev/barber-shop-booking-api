@@ -4,27 +4,13 @@ from app.config import get_settings
 from app.database import engine, Base
 from app.routers import auth, users, barbers, bookings, barber_panel, upload
 from app.routers import ws as ws_router
-import multiprocessing
-from contextlib import asynccontextmanager
-from app.telegram_bot import run_bot
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    # Start Telegram bot in a separate background process
-    bot_process = multiprocessing.Process(target=run_bot, daemon=True)
-    bot_process.start()
-    
-    yield
-    
-    # Shutdown bot when app stops
-    bot_process.terminate()
 
 settings = get_settings()
 
 app = FastAPI(
     title=settings.app_name,
-    debug=settings.debug,
-    lifespan=lifespan
+    debug=settings.debug
 )
 
 # CORS middleware
