@@ -19,9 +19,13 @@ class User(Base):
     username = Column(String, unique=True, index=True, nullable=True)
     hashed_password = Column(String, nullable=True)
 
+    # Telegram
+    telegram_chat_id = Column(String, nullable=True)
+    language = Column(String, default="ru")
+
     is_active = Column(Boolean, default=True)
     is_admin = Column(Boolean, default=False)
-    is_barber = Column(Boolean, default=False)  # New field
+    is_barber = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow,
                         onupdate=datetime.utcnow)
@@ -30,5 +34,5 @@ class User(Base):
     bookings = relationship(
         "Booking",
         back_populates="customer",
-        foreign_keys="Booking.customer_id"   # 👈 ADD THIS
+        foreign_keys="Booking.customer_id"
     )

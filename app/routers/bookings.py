@@ -4,13 +4,16 @@ from typing import List
 import uuid
 from datetime import datetime
 from app.database import get_db
+from app.models.barber import Barber
 from app.models.booking import Booking, BookingStatus
 from app.models.user import User
 from app.schemas.booking import Booking as BookingSchema, BookingCreate, BookingUpdate
 from app.dependencies.auth import get_current_active_user, get_current_admin_user
 from app.ws_manager import manager
+from app.utils.telegram_bot import send_booking_confirmation
 
 router = APIRouter(prefix="/bookings", tags=["Bookings"])
+
 
 @router.get("/", response_model=List[BookingSchema])
 async def get_bookings(
@@ -26,8 +29,9 @@ async def get_bookings(
         bookings = db.query(Booking).filter(
             Booking.customer_id == current_user.id
         ).offset(skip).limit(limit).all()
-    
+
     return bookings
+
 
 @router.get("/booked-slots")
 async def get_booked_slots(
@@ -39,22 +43,24 @@ async def get_booked_slots(
     try:
         # Parse date string (expecting YYYY-MM-DD)
         target_date = datetime.strptime(date, '%Y-%m-%d').date()
-        
+
         # Query bookings for this barber on this date that are not cancelled
         bookings = db.query(Booking).filter(
             Booking.barber_id == barber_id,
             Booking.status != BookingStatus.CANCELLED
         ).all()
-        
+
         # Filter by date in Python (since booking_date is DateTime)
         booked_times = []
         for b in bookings:
             if b.booking_date.date() == target_date:
                 booked_times.append(b.booking_date.strftime('%H:%M'))
-        
+
         return booked_times
     except ValueError:
-        raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD")
+        raise HTTPException(
+            status_code=400, detail="Invalid date format. Use YYYY-MM-DD")
+
 
 @router.get("/{booking_id}", response_model=BookingSchema)
 async def get_booking(
@@ -69,36 +75,24 @@ async def get_booking(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Booking not found"
         )
-    
+
     # Users can only view their own bookings unless admin
     if str(booking.customer_id) != str(current_user.id) and not current_user.is_admin:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Not enough permissions"
         )
-    
+
     return booking
 
+
 @router.post("/", response_model=BookingSchema, status_code=status.HTTP_201_CREATED)
-async def create_booking(
+def create_booking(
     booking_data: BookingCreate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ):
     """Create a new booking"""
-    # Check if slot is already booked
-    existing = db.query(Booking).filter(
-        Booking.barber_id == booking_data.barber_id,
-        Booking.booking_date == booking_data.booking_date,
-        Booking.status != BookingStatus.CANCELLED
-    ).first()
-    
-    if existing:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="This time slot is already booked"
-        )
-    
     db_booking = Booking(
         customer_id=current_user.id,
         **booking_data.dict()
@@ -106,14 +100,43 @@ async def create_booking(
     db.add(db_booking)
     db.commit()
     db.refresh(db_booking)
-    
-    # Broadcast the new booking
-    await manager.broadcast_json({
-        "type": "booking_created",
-        "booking_id": str(db_booking.id)
-    })
-    
+
+    # Send Telegram notification
+    try:
+        barber = db.query(Barber).filter(Barber.id == db_booking.barber_id).first()
+        if barber:
+            booking_datetime = db_booking.booking_date
+            
+            # Notify Customer
+            if current_user.telegram_chat_id:
+                send_booking_confirmation(
+                    current_user.telegram_chat_id,
+                    current_user.full_name,
+                    barber.name,
+                    booking_datetime,
+                    "Стрижка",
+                    locale=current_user.language or 'ru'
+                )
+            
+            # Notify Barber
+            if barber.telegram_chat_id:
+                # Get barber's language preference
+                barber_user = db.query(User).filter(User.email == barber.email).first()
+                barber_locale = barber_user.language if barber_user else 'ru'
+                
+                from app.utils.telegram_bot import send_notification_to_barber
+                send_notification_to_barber(
+                    barber.telegram_chat_id,
+                    current_user.full_name,
+                    booking_datetime,
+                    db_booking.notes or "Нет заметок",
+                    locale=barber_locale
+                )
+    except Exception as e:
+        print(f"Failed to send Telegram notification: {e}")
+
     return db_booking
+
 
 @router.put("/{booking_id}", response_model=BookingSchema)
 async def update_booking(
@@ -129,28 +152,29 @@ async def update_booking(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Booking not found"
         )
-    
+
     # Users can only update their own bookings unless admin
     if str(booking.customer_id) != str(current_user.id) and not current_user.is_admin:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Not enough permissions"
         )
-    
+
     update_data = booking_data.dict(exclude_unset=True)
     for field, value in update_data.items():
         setattr(booking, field, value)
-    
+
     db.commit()
     db.refresh(booking)
-    
+
     # Broadcast the update
     await manager.broadcast_json({
         "type": "booking_updated",
         "booking_id": str(booking.id)
     })
-    
+
     return booking
+
 
 @router.delete("/{booking_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_booking(
@@ -165,22 +189,44 @@ async def delete_booking(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Booking not found"
         )
-    
+
     # Users can only delete their own bookings unless admin
     if str(booking.customer_id) != str(current_user.id) and not current_user.is_admin:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Not enough permissions"
         )
-    
+
     booking_id_str = str(booking.id)
+    barber_id = booking.barber_id
+    booking_date = booking.booking_date
+    customer_name = current_user.full_name
+
     db.delete(booking)
     db.commit()
-    
+
+    # Notify Barber
+    try:
+        barber = db.query(Barber).filter(Barber.id == barber_id).first()
+        if barber and barber.telegram_chat_id:
+            # Get barber's language preference
+            barber_user = db.query(User).filter(User.email == barber.email).first()
+            barber_locale = barber_user.language if barber_user else 'ru'
+            
+            from app.utils.telegram_bot import send_cancellation_to_barber
+            send_cancellation_to_barber(
+                barber.telegram_chat_id,
+                customer_name,
+                booking_date,
+                locale=barber_locale
+            )
+    except Exception as e:
+        print(f"Failed to send cancellation notification to barber: {e}")
+
     # Broadcast the deletion
     await manager.broadcast_json({
         "type": "booking_deleted",
         "booking_id": booking_id_str
     })
-    
+
     return None

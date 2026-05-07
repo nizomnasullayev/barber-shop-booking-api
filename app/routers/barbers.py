@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 from typing import List
 import uuid
@@ -8,8 +8,26 @@ from app.models.user import User
 from app.schemas.barber import Barber as BarberSchema, BarberCreate, BarberUpdate
 from app.dependencies.auth import get_current_admin_user
 from app.utils.security import get_password_hash
+import math
 
 router = APIRouter(prefix="/barbers", tags=["Barbers"])
+
+def calculate_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    """
+    Calculate distance between two points using Haversine formula
+    Returns distance in kilometers
+    """
+    R = 6371  # Earth's radius in kilometers
+
+    lat1_rad = math.radians(lat1)
+    lat2_rad = math.radians(lat2)
+    delta_lat = math.radians(lat2 - lat1)
+    delta_lon = math.radians(lon2 - lon1)
+
+    a = math.sin(delta_lat / 2) ** 2 + math.cos(lat1_rad) * math.cos(lat2_rad) * math.sin(delta_lon / 2) ** 2
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+
+    return R * c
 
 @router.get("/", response_model=List[BarberSchema])
 def get_barbers(
@@ -25,6 +43,59 @@ def get_barbers(
     
     barbers = query.offset(skip).limit(limit).all()
     return barbers
+
+@router.get("/nearest")
+def get_nearest_barbers(
+    latitude: float = Query(..., description="User's latitude"),
+    longitude: float = Query(..., description="User's longitude"),
+    radius: float = Query(10, description="Search radius in kilometers"),
+    limit: int = Query(10, description="Maximum number of results"),
+    db: Session = Depends(get_db)
+):
+    """
+    Find nearest barbers based on user's location
+    Returns barbers sorted by distance
+    """
+    # Get all active barbers with location
+    barbers = db.query(Barber).filter(
+        Barber.is_active == True,
+        Barber.latitude.isnot(None),
+        Barber.longitude.isnot(None)
+    ).all()
+
+    # Calculate distance for each barber
+    barbers_with_distance = []
+    for barber in barbers:
+        distance = calculate_distance(
+            latitude, longitude,
+            barber.latitude, barber.longitude
+        )
+        
+        # Only include barbers within radius
+        if distance <= radius:
+            barber_dict = {
+                "id": str(barber.id),
+                "name": barber.name,
+                "email": barber.email,
+                "phone": barber.phone,
+                "specialties": barber.specialties,
+                "bio": barber.bio,
+                "image_url": barber.image_url,
+                "latitude": barber.latitude,
+                "longitude": barber.longitude,
+                "address": barber.address,
+                "distance_km": round(distance, 2),
+                "is_active": barber.is_active,
+                "created_at": barber.created_at,
+                "updated_at": barber.updated_at
+            }
+            barbers_with_distance.append(barber_dict)
+
+    # Sort by distance
+    barbers_with_distance.sort(key=lambda x: x['distance_km'])
+    
+    # Limit results
+    return barbers_with_distance[:limit]
 
 @router.get("/{barber_id}", response_model=BarberSchema)
 def get_barber(barber_id: uuid.UUID, db: Session = Depends(get_db)):

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Text, Boolean, DateTime
+from sqlalchemy import Column, String, Text, Boolean, DateTime, Float
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from app.database import Base
@@ -16,6 +16,15 @@ class Barber(Base):
     specialties = Column(Text)  # JSON string of specialties
     bio = Column(Text)
     image_url = Column(String)
+
+    # Location fields
+    latitude = Column(Float, nullable=True)
+    longitude = Column(Float, nullable=True)
+    address = Column(String, nullable=True)
+
+    # Telegram
+    telegram_chat_id = Column(String, nullable=True)
+
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow,

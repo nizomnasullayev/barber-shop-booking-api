@@ -10,6 +10,10 @@ class BarberBase(BaseModel):
     specialties: Optional[str] = None
     bio: Optional[str] = None
     image_url: Optional[str] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    address: Optional[str] = None
+    telegram_chat_id: Optional[str] = None
 
 class BarberCreate(BarberBase):
     password: Optional[str] = None
@@ -21,6 +25,10 @@ class BarberUpdate(BaseModel):
     specialties: Optional[str] = None
     bio: Optional[str] = None
     image_url: Optional[str] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    address: Optional[str] = None
+    telegram_chat_id: Optional[str] = None
     is_active: Optional[bool] = None
 
 class Barber(BarberBase):

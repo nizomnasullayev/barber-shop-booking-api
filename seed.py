@@ -1,5 +1,6 @@
 import os
 import json
+from dotenv import load_dotenv
 from datetime import datetime, time, timedelta
 
 from sqlalchemy.orm import Session
@@ -12,9 +13,12 @@ from app.models.working_hours import WorkingHours
 from app.utils.security import get_password_hash
 
 
-# Load env safely
-ADMIN_EMAIL = os.getenv("ADMIN_EMAIL", "admin@example.com")
-ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "admin123")
+# ✅ Load .env file
+load_dotenv()
+
+# ✅ Get values from .env
+ADMIN_EMAIL = os.getenv("ADMIN_EMAIL")
+ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD")
 
 
 def get_db():
@@ -24,28 +28,40 @@ def get_db():
 def create_admin(db: Session):
     print("Creating admin...")
 
-    admin = db.query(User).filter(User.email == ADMIN_EMAIL).first()
+    admin = db.query(User).filter(
+        (User.email == ADMIN_EMAIL) |
+        (User.phone == "+998901234567")
+    ).first()
 
     if admin:
-        print("✓ Admin already exists")
-        return admin
+        # ✅ UPDATE existing user instead of creating new
+        admin.email = ADMIN_EMAIL
+        admin.username = "admin"
+        admin.full_name = "Admin User"
+        admin.phone = "+998901234567"
+        admin.is_active = True
+        admin.is_admin = True
+        admin.is_barber = False
 
-    admin = User(
-        email=ADMIN_EMAIL,
-        username="admin",
-        hashed_password=get_password_hash(ADMIN_PASSWORD),
-        full_name="Admin User",
-        phone="+998901234567",
-        is_active=True,
-        is_admin=True,
-        is_barber=False,
-    )
+        admin.hashed_password = get_password_hash(ADMIN_PASSWORD)
 
-    db.add(admin)
+        print("✓ Admin updated")
+    else:
+        admin = User(
+            email=ADMIN_EMAIL,
+            username="admin",
+            hashed_password=get_password_hash(ADMIN_PASSWORD),
+            full_name="Admin User",
+            phone="+998901234567",
+            is_active=True,
+            is_admin=True,
+            is_barber=False,
+        )
+        db.add(admin)
+        print("✓ Admin created")
+
     db.commit()
     db.refresh(admin)
-
-    print("✓ Admin created")
     return admin
 
 
@@ -58,42 +74,65 @@ def create_barbers(db: Session):
             "email": "rustam@barbershop.uz",
             "phone": "+998905551111",
             "specialties": ["Classic Cut", "Shave", "Styling"],
+            "latitude": 41.3111,
+            "longitude": 69.2797,
+            "address": "Tashkent Center",
+            "telegram_chat_id": "111111",
         },
         {
             "name": "Dmitriy Petrov",
             "email": "dmitriy@barbershop.uz",
             "phone": "+998905552222",
             "specialties": ["Modern Cuts", "Coloring", "Styling"],
+            "latitude": 41.3200,
+            "longitude": 69.2700,
+            "address": "Chilanzar",
+            "telegram_chat_id": "222222",
         },
     ]
 
     barbers = []
 
     for data in barber_data:
-        existing = db.query(Barber).filter(
+        barber = db.query(Barber).filter(
             Barber.email == data["email"]).first()
 
-        if existing:
-            print(f"✓ Barber already exists: {data['name']}")
-            barbers.append(existing)
-            continue
+        if barber:
+            # ✅ UPDATE existing barber
+            barber.name = data["name"]
+            barber.phone = data["phone"]
+            barber.specialties = json.dumps(data["specialties"])
+            barber.bio = "Professional barber with experience."
+            barber.image_url = "https://via.placeholder.com/300"
+            barber.is_active = True
 
-        barber = Barber(
-            name=data["name"],
-            email=data["email"],
-            phone=data["phone"],
-            specialties=json.dumps(data["specialties"]),
-            bio="Professional barber with experience.",
-            image_url="https://via.placeholder.com/300",
-            is_active=True,
-        )
+            # 🔥 NEW FIELDS
+            barber.latitude = data["latitude"]
+            barber.longitude = data["longitude"]
+            barber.address = data["address"]
+            barber.telegram_chat_id = data["telegram_chat_id"]
 
-        db.add(barber)
+            print(f"✓ Updated barber: {data['name']}")
+        else:
+            barber = Barber(
+                name=data["name"],
+                email=data["email"],
+                phone=data["phone"],
+                specialties=json.dumps(data["specialties"]),
+                bio="Professional barber with experience.",
+                image_url="https://via.placeholder.com/300",
+                is_active=True,
+                latitude=data["latitude"],
+                longitude=data["longitude"],
+                address=data["address"],
+                telegram_chat_id=data["telegram_chat_id"],
+            )
+            db.add(barber)
+            print(f"✓ Created barber: {data['name']}")
+
         db.commit()
         db.refresh(barber)
-
         barbers.append(barber)
-        print(f"✓ Created barber: {data['name']}")
 
     return barbers
 

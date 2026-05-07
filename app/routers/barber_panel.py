@@ -137,6 +137,24 @@ async def update_booking_status(
     
     db.commit()
     db.refresh(booking)
+
+    # Send Telegram notification to Customer if status changed
+    if 'status' in update_data:
+        try:
+            customer = db.query(User).filter(User.id == booking.customer_id).first()
+            if customer and customer.telegram_chat_id:
+                from app.utils.telegram_bot import send_booking_status_update
+                send_booking_status_update(
+                    customer.telegram_chat_id,
+                    customer.full_name,
+                    barber.name,
+                    booking.booking_date,
+                    update_data['status'],
+                    locale=customer.language or 'ru'
+                )
+        except Exception as e:
+            print(f"Failed to send Telegram status update: {e}")
+
     await manager.broadcast_json({"type": "booking_updated", "booking_id": str(booking.id)})
     return booking
 

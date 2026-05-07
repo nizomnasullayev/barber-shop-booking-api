@@ -44,3 +44,20 @@ general:
   success: "Muvaffaqiyatli"
   error: "Xatolik"
   not_found: "Topilmadi"
+ 
+# Bot messages
+bot:
+  welcome: "👋 Barber Shop Bot-ga xush kelibsiz!\n\nAkkountni bog'lash uchun telefon raqamingizni quyidagi formatda yuboring: +998901234567\n\nShundan so'ng siz buyurtmalaringiz haqida bildirishnomalar olasiz."
+  invalid_phone: "❌ Raqam formati noto'g'ri.\nFormat: +998901234567"
+  user_not_found: "❌ Bunday raqamli foydalanuvchi topilmadi.\nAvval saytdan ro'yxatdan o'ting."
+  link_success: "✅ Akkount muvaffaqiyatli bog'landi!\n\n👤 Ism: {name}\n📱 Telefon: {phone}\n\nEndi siz bildirishnomalar olasiz."
+  help: "📋 Mavjud buyruqlar:\n\n/start - Ishni boshlash\n/lang - Tilni o'zgartirish\n/help - Yordam"
+  select_language: "Iltimos, tilni tanlang:"
+  lang_changed: "✅ Til O'zbekchaga o'zgartirildi"
+  new_booking_barber: "🆕 <b>Yangi buyurtma!</b>\n\n👤 Mijoz: {name}\n📅 Sana: {date}\n📝 Izohlar: {notes}"
+  booking_cancelled_barber: "❌ <b>Buyurtma mijoz tomonidan bekor qilindi</b>\n\n👤 Mijoz: {name}\n📅 Sana: {date}"
+  status_update_customer: "🔔 <b>Buyurtma holati yangilandi</b>\n\nSartarosh {barber} sizning {date} dagi buyurtmangiz holatini <b>{status}</b> ga o'zgartirdi."
+  booking_confirmed_customer: "🎉 <b>Buyurtma tasdiqlandi!</b>\n\n👤 Mijoz: {name}\n💈 Sartarosh: {barber}\n📅 Sana: {date}\n✂️ Xizmat: {service}\n\nXush kelibsiz!"
+  help_btn: "Yordam"
+  lang_btn: "Til"
+  link_btn: "Bog'lash"
